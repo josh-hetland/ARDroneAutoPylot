@@ -34,7 +34,7 @@ void agent_init()
 
 }
 
-void agent_act(unsigned char * img_bytes, int img_width, int img_height, bool_t img_is_belly,
+void agent_act(unsigned char * img_bytes, int img_width, int img_height, bool_t img_is_belly, int pass_button,
 	           navdata_unpacked_t * navdata, commands_t * commands)
 {
 
