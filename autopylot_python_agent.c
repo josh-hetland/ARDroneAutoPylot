@@ -85,7 +85,7 @@ void agent_init()
 		error("Cannot find function %s", AGENT_FUNCTION_NAME);
 	}
 	
-	pArgs = PyTuple_New(12);
+	pArgs = PyTuple_New(13);
 	
 	pResult = PyTuple_New(5);
 }
@@ -126,7 +126,7 @@ static float get_float_result(PyObject *pResult, int pos)
 	return (float)PyFloat_AsDouble(PyTuple_GetItem(pResult, pos));
 }
 
-void agent_act(unsigned char * img_bytes, int img_width, int img_height, bool_t img_is_belly,
+void agent_act(unsigned char * img_bytes, int img_width, int img_height, bool_t img_is_belly, int pass_button,
 	navdata_unpacked_t * navdata, commands_t * commands)
 {    
 	int k = 0;
@@ -138,6 +138,7 @@ void agent_act(unsigned char * img_bytes, int img_width, int img_height, bool_t 
 	set_int_arg(img_height,	                     k++);
 	
 	set_int_arg(img_is_belly?1:0, 	             k++);
+	set_int_arg(pass_button,				     k++);
 
     navdata_demo_t demo = navdata->navdata_demo;
 	
