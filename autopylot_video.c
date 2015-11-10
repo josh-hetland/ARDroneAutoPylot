@@ -101,12 +101,15 @@ C_RESULT video_transform (video_cfg_t *cfg, vp_api_io_data_t *in, vp_api_io_data
 	commands_t commands;
 
 	// Call the Python (or Matlab or C) agent's action routine
-	agent_act(cfg->frameBuffer, img_width, img_height, g_is_bellycam, &g_navdata, &commands);
-
+	agent_act(cfg->frameBuffer, img_width, img_height, g_is_bellycam, g_pass_button, &g_navdata, &commands);
+	g_pass_button = 0; // the agent has been notified of the button press
 	if (g_autopilot) {
-
-	        set(commands.phi, commands.theta, commands.gaz, commands.yaw);
-
+		if( commands.phi == 0 && commands.theta == 0 && commands.gaz == 0 && commands.yaw == 0 ){
+			ardrone_tool_set_progressive_cmd(0,0,0,0,0,0,0);		
+		}else{
+			ardrone_tool_set_progressive_cmd(1,commands.phi,commands.theta,commands.gaz,commands.yaw,0,0);
+			//set(commands.phi, commands.theta, commands.gaz, commands.yaw);
+		}
 		if (commands.zap) {
 			zap();
 		}
