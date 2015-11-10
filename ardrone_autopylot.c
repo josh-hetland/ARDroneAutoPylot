@@ -75,6 +75,7 @@ C_RESULT ardrone_tool_init_custom (void)
     // Reset global data
     bzero(&g_navdata, sizeof(g_navdata));
     g_autopilot = FALSE;
+    g_pass_button = 0;
     
     // Register a new game controller
     ardrone_tool_input_add( &gamepad );
