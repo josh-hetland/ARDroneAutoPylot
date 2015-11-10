@@ -56,7 +56,7 @@ void agent_init() {
 	}
 }
 
-void agent_act(unsigned char * img_bytes, int img_width, int img_height, bool_t img_is_belly,
+void agent_act(unsigned char * img_bytes, int img_width, int img_height, bool_t img_is_belly, int pass_button,
 	            navdata_unpacked_t * navdata, commands_t * commands) {
 
 	// Need engine
@@ -83,7 +83,7 @@ void agent_act(unsigned char * img_bytes, int img_width, int img_height, bool_t 
 	put_variable("img", img);
 
 	// Create a variable for passing navigation data to Matlab function
-	mxArray * mx_navdata = create_numeric_array(9, mxDOUBLE_CLASS);
+	mxArray * mx_navdata = create_numeric_array(10, mxDOUBLE_CLASS);
 	
 	// Build command using reshaped IMG variable and constants from navdata structure
 	char cmd[200];
@@ -92,6 +92,7 @@ void agent_act(unsigned char * img_bytes, int img_width, int img_height, bool_t 
     navdata_demo_t demo = navdata->navdata_demo;
 
 	*np++ = (double)(img_is_belly?1:0);
+	*np++ = (double)pass_button;
 	*np++ = (double)demo.ctrl_state; 	     
 	*np++ = (double)demo.vbat_flying_percentage;
 
