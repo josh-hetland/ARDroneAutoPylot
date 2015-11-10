@@ -31,6 +31,11 @@ bool_t g_autopilot, g_is_bellycam;
 #ifndef _MAIN
 extern
 #endif
+int g_pass_button;
+
+#ifndef _MAIN
+extern
+#endif
 navdata_unpacked_t g_navdata;
 
 // Switches cameras
