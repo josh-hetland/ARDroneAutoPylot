@@ -47,18 +47,28 @@ History:
 
 typedef enum {
   AXIS_PHI = 0,
-  AXIS_THETA,
-  AXIS_YAW,
-  AXIS_GAZ,
-  AXIS_IGNORE3,
-  AXIS_IGNORE4,
+  AXIS_THETA = 1,
+  AXIS_YAW = 2,
+  AXIS_GAZ = 3,
+  AXIS_IGNORE3 = 4,
+  AXIS_IGNORE4 = 5
 } PAD_AXIS;
 
 typedef enum {
-  BUTTON_SELECT = 8,
-  BUTTON_START = 9,
-  BUTTON_ZAP = 3,
-  BUTTON_AUTO = 2
+  BUTTON_SELECT = 0,
+  BUTTON_START = 3,
+  BUTTON_UP = 4,
+  BUTTON_RIGHT = 5,
+  BUTTON_DOWN = 6,
+  BUTTON_LEFT = 7,
+  BUTTON_L2 = 8,
+  BUTTON_R2 = 9,
+  BUTTON_L1 = 10,
+  BUTTON_R1 = 11,
+  BUTTON_ZAP = 12,
+  BUTTON_AUTO = 13,
+  BUTTON_HOVER = 14,
+  BUTTON_FTRIM = 15
 } PAD_BUTTONS;
 
 #else // default to Logitech gamepad
@@ -78,7 +88,17 @@ typedef enum {
   BUTTON_START = 0,
   BUTTON_SELECT,
   BUTTON_ZAP,
-  BUTTON_AUTO
+  BUTTON_AUTO,
+  BUTTON_UP,
+  BUTTON_RIGHT,
+  BUTTON_DOWN,
+  BUTTON_LEFT,
+  BUTTON_L2,
+  BUTTON_R2,
+  BUTTON_L1,
+  BUTTON_R1,
+  BUTTON_HOVER,
+  BUTTON_FTRIM
 } PAD_BUTTONS;
 
 #endif
@@ -96,6 +116,7 @@ typedef enum {
 
 #include <VP_Os/vp_os_types.h>
 #include <ardrone_tool/UI/ardrone_input.h>
+#include <ardrone_api.h>
 
 #include "ardrone_autopylot.h"
 #include "autopylot_agent.h"
@@ -163,41 +184,125 @@ C_RESULT update_gamepad(void) {
 	// Buffer decomposition in blocs (if the last is incomplete, it's ignored)
 	bool_t refresh_values = FALSE;
 	int32_t idx = 0;
+	
 	for (idx = 0; idx < res / sizeof(struct js_event); idx++) {
 
 		unsigned char type = js_e_buffer[idx].type;
 		unsigned char number = js_e_buffer[idx].number;
 		short value = js_e_buffer[idx].value;
 
-		if (type & JS_EVENT_INIT ) {
+		if ( type & JS_EVENT_INIT ) {
 
 			break;
 		}
-		else if (!value) {
-
-			break;
-		}
-		else if (type & JS_EVENT_BUTTON ) {
-
-			switch(number ) {
+		else if ( type & JS_EVENT_BUTTON ) {
+			
+			switch( number ) {
 
 				case BUTTON_START :
-					start ^= 1;
-					ardrone_tool_set_ui_pad_start( start );
-					g_autopilot = FALSE;
+					if( value == 1 ){
+						start ^= 1;
+						ardrone_tool_set_ui_pad_start( start );
+						g_autopilot = FALSE;
+					}
 					break;
 				case BUTTON_SELECT :
-					ardrone_tool_set_ui_pad_select(js_e_buffer[idx].value);
-					return C_OK;
+					if( value == 1 ){
+						ardrone_tool_set_ui_pad_select(js_e_buffer[idx].value);
+						return C_OK;
+					}
 				case BUTTON_ZAP:
-					zap();
+					if( value == 1 ){
+						// Using the zap button to pass in a notification to the agent
+						// instead of changing the camera (maybe i should move zap to a hat)
+						// a button that sets a auto-hover mode might be good too, but tomorrow
+						// note: in the event you could do it fast enough (you can't) you would overwrite
+						// a previous press before it gets sent
+						g_pass_button = BUTTON_ZAP;
+					}
+					break;
+				case BUTTON_HOVER:
+					phi = 0; theta = 0; gaz = 0; yaw = 0;
+					refresh_values = TRUE;
+					break;
+				case BUTTON_UP:
+					if( value == 1 ){
+						phi = 0; theta = -0.1; gaz = 0; yaw = 0;
+					}else{
+						phi = 0; theta = 0; gaz = 0; yaw = 0;
+					}
+					refresh_values = TRUE;
+					break;
+				case BUTTON_DOWN:
+					if( value == 1 ){
+						phi = 0; theta = 0.1; gaz = 0; yaw = 0;
+					}else{
+						phi = 0; theta = 0; gaz = 0; yaw = 0;
+					}
+					refresh_values = TRUE;
+					break;
+				case BUTTON_LEFT:
+					if( value == 1 ){
+						phi = -0.1; theta = 0; gaz = 0; yaw = 0;
+					}else{
+						phi = 0; theta = 0; gaz = 0; yaw = 0;
+					}
+					refresh_values = TRUE;
+					break;
+				case BUTTON_RIGHT:
+					if( value == 1 ){
+						phi = 0.1; theta = 0; gaz = 0; yaw = 0;
+					}else{
+						phi = 0; theta = 0; gaz = 0; yaw = 0;
+					}
+					refresh_values = TRUE;
+					break;
+				case BUTTON_L1:
+					if( value == 1 ){
+						phi = 0; theta = 0; gaz = -0.2; yaw = 0;
+					}else{
+						phi = 0; theta = 0; gaz = 0; yaw = 0;
+					}
+					refresh_values = TRUE;
+					break;
+				case BUTTON_R1:
+					if( value == 1 ){
+						phi = 0; theta = 0; gaz = 0.2; yaw = 0;
+					}else{
+						phi = 0; theta = 0; gaz = 0; yaw = 0;
+					}
+					refresh_values = TRUE;
+					break;
+				case BUTTON_L2:
+					if( value == 1 ){
+						phi = 0; theta = 0; gaz = 0; yaw = -0.2;
+					}else{
+						phi = 0; theta = 0; gaz = 0; yaw = 0;
+					}
+					refresh_values = TRUE;
+					break;
+				case BUTTON_R2:
+					if( value == 1 ){
+						phi = 0; theta = 0; gaz = 0; yaw = 0.2;
+					}else{
+						phi = 0; theta = 0; gaz = 0; yaw = 0;
+					}
+					refresh_values = TRUE;
+					break;
+				case BUTTON_FTRIM:
+					if( value == 1 ){
+						ardrone_at_set_flat_trim();
+						PRINT("Flat trim request sent\n");
+					}
 					break;
 				case BUTTON_AUTO:
-					if (g_autopilot) {
-						refresh_values = TRUE;
-					}
-					else {
-						g_autopilot = TRUE;
+					if( value == 1 ){
+						if (g_autopilot) {
+							refresh_values = TRUE;
+						}
+						else {
+							g_autopilot = TRUE;
+						}
 					}
 					break;
 			}
@@ -205,7 +310,7 @@ C_RESULT update_gamepad(void) {
 		}
 		else if (type & JS_EVENT_AXIS ) {
 		    
-			if (number != AXIS_IGNORE3 && number != AXIS_IGNORE4) {
+			if (number == AXIS_PHI || number == AXIS_THETA || number == AXIS_GAZ || number == AXIS_YAW) {
 				refresh_values = TRUE;
 				float angle = value / (float)SHRT_MAX;
 				switch (number) {
@@ -216,7 +321,7 @@ C_RESULT update_gamepad(void) {
 						theta = angle;
 						break;
 					case AXIS_GAZ:
-						gaz = angle;
+						gaz = ( angle * -1 );
 						break;
 					case AXIS_YAW:
 						yaw = angle;
@@ -231,8 +336,12 @@ C_RESULT update_gamepad(void) {
 	if (refresh_values) {
 
 		g_autopilot = FALSE;
-		
-		set(phi, theta, gaz, yaw);		
+		if( phi == 0 && theta == 0 && gaz == 0 && yaw == 0 ){
+			ardrone_tool_set_progressive_cmd(0,0,0,0,0,0,0);		
+		}else{
+			ardrone_tool_set_progressive_cmd(1,phi,theta,gaz,yaw,0,0);
+		}
+		//set(phi, theta, gaz, yaw);		
 	}
 
 	return C_OK;
