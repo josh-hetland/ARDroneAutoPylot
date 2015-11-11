@@ -56,6 +56,8 @@ typedef enum {
 
 typedef enum {
   BUTTON_SELECT = 0,
+  BUTTON_LHAT = 1,
+  BUTTON_RHAT = 2,
   BUTTON_START = 3,
   BUTTON_UP = 4,
   BUTTON_RIGHT = 5,
@@ -98,7 +100,9 @@ typedef enum {
   BUTTON_L1,
   BUTTON_R1,
   BUTTON_HOVER,
-  BUTTON_FTRIM
+  BUTTON_FTRIM,
+  BUTTON_LHAT,
+  BUTTON_RHAT
 } PAD_BUTTONS;
 
 #endif
@@ -168,6 +172,7 @@ C_RESULT update_gamepad(void) {
 
 	static int32_t start;
     static float phi, theta, gaz, yaw;
+	static int cmd_mode = 0;
 
 	struct js_event js_e_buffer[64];
 	ssize_t res = read(joy_dev, js_e_buffer, sizeof(struct js_event) * 64);
@@ -222,8 +227,14 @@ C_RESULT update_gamepad(void) {
 					}
 					break;
 				case BUTTON_HOVER:
-					phi = 0; theta = 0; gaz = 0; yaw = 0;
-					refresh_values = TRUE;
+					// reset values and set hover mode regardless of current command mode
+					// this operates outside of the normal handling so refreshing values isn't necessary
+					// autopilot will still be cancelled though
+					if( value == 1 ){
+						g_autopilot = FALSE;
+						phi = 0; theta = 0; gaz = 0; yaw = 0;
+						ardrone_tool_set_progressive_cmd(0,0,0,0,0,0,0);
+					}
 					break;
 				case BUTTON_UP:
 					if( value == 1 ){
@@ -305,6 +316,16 @@ C_RESULT update_gamepad(void) {
 						}
 					}
 					break;
+				case BUTTON_LHAT:
+					if( value == 1 ){
+						if( cmd_mode == 0 ){
+							PRINT("ACTIVE mode set. auto-hover disabled\n");
+							cmd_mode = 1;
+						}else{
+							PRINT("ASSISTED mode set. auto-hover enabled\n");
+							cmd_mode = 0;
+						}
+					}
 			}
 
 		}
@@ -337,7 +358,7 @@ C_RESULT update_gamepad(void) {
 
 		g_autopilot = FALSE;
 		if( phi == 0 && theta == 0 && gaz == 0 && yaw == 0 ){
-			ardrone_tool_set_progressive_cmd(0,0,0,0,0,0,0);		
+			ardrone_tool_set_progressive_cmd(cmd_mode,0,0,0,0,0,0);
 		}else{
 			ardrone_tool_set_progressive_cmd(1,phi,theta,gaz,yaw,0,0);
 		}
