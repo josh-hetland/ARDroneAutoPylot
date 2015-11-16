@@ -121,6 +121,8 @@ typedef enum {
 #include <VP_Os/vp_os_types.h>
 #include <ardrone_tool/UI/ardrone_input.h>
 #include <ardrone_api.h>
+#include <config.h>
+#include <navdata_common.h>
 
 #include "ardrone_autopylot.h"
 #include "autopylot_agent.h"
@@ -173,6 +175,15 @@ C_RESULT update_gamepad(void) {
 	static int32_t start;
     static float phi, theta, gaz, yaw;
 	static int cmd_mode = 0;
+	static int32_t animation = 0;
+	static char *animations[] = {
+		"PHI_M30_DEG","PHI_30_DEG","THETA_M30_DEG","THETA_30_DEG",
+		"THETA_20DEG_YAW_200DEG","THETA_20DEG_YAW_M200DEG",
+		"Turnaround","Turnaround & Down","Turn Shake","Turn Dance",
+		"Roll Dance","Tilt Dance","VZ_DANCE","Wave",
+		"PHI_THETA_MIXED","DOUBLE_PHI_THETA_MIXED",
+		"Front Flip","Back Flip","Left Flip","Right Flip"
+	};
 
 	struct js_event js_e_buffer[64];
 	ssize_t res = read(joy_dev, js_e_buffer, sizeof(struct js_event) * 64);
@@ -270,19 +281,18 @@ C_RESULT update_gamepad(void) {
 					break;
 				case BUTTON_L1:
 					if( value == 1 ){
-						phi = 0; theta = 0; gaz = -0.2; yaw = 0;
-					}else{
-						phi = 0; theta = 0; gaz = 0; yaw = 0;
+						animation++;
+						if( animation >= ARDRONE_NB_ANIM_MAYDAY ){
+							animation = 0;
+						}
+						PRINT("Switched flight animation to %s\n", animations[animation]);
 					}
-					refresh_values = TRUE;
 					break;
 				case BUTTON_R1:
 					if( value == 1 ){
-						phi = 0; theta = 0; gaz = 0.2; yaw = 0;
-					}else{
-						phi = 0; theta = 0; gaz = 0; yaw = 0;
+						PRINT("Performing flight animation %s\n", animations[animation]);
+						ardrone_at_set_anim( animation, MAYDAY_TIMEOUT[animation] );
 					}
-					refresh_values = TRUE;
 					break;
 				case BUTTON_L2:
 					if( value == 1 ){
